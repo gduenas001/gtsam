@@ -140,6 +140,24 @@ namespace gtsam {
                         std::function<L(const M&)> L_of_M,
                         std::function<Y(const X&)> Y_of_X) const;
 
+    /**
+     * @brief Convert from a DecisionTree<M, X> to DecisionTree<L, Y> passing in leaf choice.
+     *
+     * @tparam X The previous value type.
+     * @param f The node pointer to the root of the previous DecisionTree.
+     * @param L_of_M Functor to convert from label type M to type L.
+     * @param Y_of_X Functor to convert from value type X to type Y.
+     * @param assignment Assignment holding the choice for each leaf.
+     * @return NodePtr 
+     *
+     */
+    template <typename M, typename X>
+    NodePtr convertFromWithChoice(
+        const typename DecisionTree<L, X>::NodePtr& f,
+        std::function<L(const M&)> L_of_M,
+        std::function<Y(const X&, Assignment<L>&)> Y_of_X,
+        Assignment<L>& assignment) const;
+
    public:
     /// @name Standard Constructors
     /// @{
@@ -179,6 +197,18 @@ namespace gtsam {
      */
     template <typename X, typename Func>
     DecisionTree(const DecisionTree<L, X>& other, Func Y_of_X);
+
+    /**
+     * @brief Convert from a different value type.
+     *
+     * @tparam X The previous value type.
+     * @param other The DecisionTree to convert from.
+     * @param Y_of_X Functor to convert from value type X to type Y which also
+     * takes the assignment of X.
+     */
+    template <typename X>
+    DecisionTree(const DecisionTree<L, X>& other,
+                 std::function<Y(const X&, Assignment<L>&)> Y_of_X);
 
     /**
      * @brief Convert from a different value type X to value type Y, also transate

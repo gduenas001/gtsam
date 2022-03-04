@@ -244,9 +244,12 @@ namespace gtsam {
                const ValueFormatter& valueFormatter) const override {
       std::cout << s << " Choice(";
       std::cout << labelFormatter(label_) << ") " << std::endl;
-      for (size_t i = 0; i < branches_.size(); i++)
-        branches_[i]->print((boost::format("%s %d") % s % i).str(),
-                            labelFormatter, valueFormatter);
+      for (size_t i = 0; i < branches_.size(); i++) {
+        if (branches_[i]) {  // Check if nullptr
+          branches_[i]->print((boost::format("%s %d") % s % i).str(),
+                              labelFormatter, valueFormatter);
+        }
+      }
     }
 
     /** output to graphviz (as a a graph) */
@@ -463,6 +466,17 @@ namespace gtsam {
 
   /****************************************************************************/
   template <typename L, typename Y>
+  template <typename X>
+  DecisionTree<L, Y>::DecisionTree(const DecisionTree<L, X>& other,
+                                   std::function<Y(const X&, Assignment<L>&)> Y_of_X) {
+    // Define functor for identity mapping of node label.
+    auto L_of_L = [](const L& label) { return label; };
+    Assignment<L> assignment;  // lvalue
+    root_ = convertFromWithChoice<L, X>(other.root_, L_of_L, Y_of_X, assignment);
+  }
+
+  /****************************************************************************/
+  template <typename L, typename Y>
   template <typename M, typename X, typename Func>
   DecisionTree<L, Y>::DecisionTree(const DecisionTree<M, X>& other,
                                    const std::map<M, L>& map, Func Y_of_X) {
@@ -612,6 +626,46 @@ namespace gtsam {
     std::vector<LY> functions;
     for (auto&& branch : choice->branches()) {
       functions.emplace_back(convertFrom<M, X>(branch, L_of_M, Y_of_X));
+    }
+    return LY::compose(functions.begin(), functions.end(), newLabel);
+  }
+
+  /****************************************************************************/
+  template <typename L, typename Y>
+  template <typename M, typename X>
+  typename DecisionTree<L, Y>::NodePtr
+  DecisionTree<L, Y>::convertFromWithChoice(
+      const typename DecisionTree<L, X>::NodePtr& f,
+      std::function<L(const M&)> L_of_M,
+      std::function<Y(const X&, Assignment<L>&)> Y_of_X,
+      Assignment<L>& assignment) const {
+    using LY = DecisionTree<L, Y>;
+
+    // ugliness below because apparently we can't have templated virtual
+    // functions
+    // If leaf, apply unary conversion "op" and create a unique leaf
+    using MXLeaf = typename DecisionTree<M, X>::Leaf;
+    if (auto leaf = boost::dynamic_pointer_cast<const MXLeaf>(f)) {
+      return NodePtr(new Leaf(Y_of_X(leaf->constant(), assignment)));
+    }
+
+    // Check if Choice
+    using MXChoice = typename DecisionTree<M, X>::Choice;
+    auto choice = boost::dynamic_pointer_cast<const MXChoice>(f);
+    if (!choice) throw std::invalid_argument(
+        "DecisionTree::convertFrom: Invalid NodePtr");
+
+    // get new label
+    const M oldLabel = choice->label();
+    const L newLabel = L_of_M(oldLabel);
+
+    // put together via Shannon expansion otherwise not sorted.
+    std::vector<LY> functions;
+    for (size_t i = 0; i < choice->nrChoices(); i++) {
+      assignment[choice->label()] = i;  // Set assignment for label to i
+      auto branch = choice->branches()[i];
+      functions.emplace_back(
+          convertFromWithChoice<M, X>(branch, L_of_M, Y_of_X, assignment));
     }
     return LY::compose(functions.begin(), functions.end(), newLabel);
   }

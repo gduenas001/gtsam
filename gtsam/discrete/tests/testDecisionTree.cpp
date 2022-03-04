@@ -432,6 +432,10 @@ TEST(DecisionTree, ConvertFromWithChoice) {
   // This constructor will fail because the last 2 -1s are merged together.
   DT actualTree(keys, nodes);
 
+  // std::function<int(const int&, Assignment<string>&)> identity =
+  //     [](const int& d, Assignment<string>& assignment) { return d; };
+  // DT actualTree(tree, identity);
+
   EXPECT(assert_equal(tree, actualTree));
 }
 
