@@ -38,8 +38,10 @@ void FixedLagSmoother::print(const std::string& s, const KeyFormatter& keyFormat
 
 /* ************************************************************************* */
 bool FixedLagSmoother::equals(const FixedLagSmoother& rhs, double tol) const {
+  // NOTE: compare keyTimestampMap_ (std::map) instead of timestampKeyMap_ (std::multimap)
+  // to guarantee equal order of the elements.
   return std::abs(smootherLag_ - rhs.smootherLag_) < tol
-      && std::equal(timestampKeyMap_.begin(), timestampKeyMap_.end(), rhs.timestampKeyMap_.begin());
+      && std::equal(keyTimestampMap_.begin(), keyTimestampMap_.end(), rhs.keyTimestampMap_.begin());
 }
 
 /* ************************************************************************* */

@@ -128,6 +128,16 @@ protected:
   /** Find all of the keys associated with timestamps before the provided time */
   KeyVector findKeysAfter(double timestamp) const;
 
+private:
+  /** Serialization function */
+  friend class boost::serialization::access;
+  template<class ARCHIVE>
+  void serialize(ARCHIVE & ar, const unsigned int /*version*/) {
+    ar & BOOST_SERIALIZATION_NVP(smootherLag_);
+    ar & BOOST_SERIALIZATION_NVP(timestampKeyMap_);
+    ar & BOOST_SERIALIZATION_NVP(keyTimestampMap_);
+  }
+
 }; // FixedLagSmoother
 
 /// Typedef for matlab wrapping

@@ -85,6 +85,11 @@ public:
     return isam_.calculateEstimate<VALUE>(key);
   }
 
+  /** return the current iSAM2 smoother */
+  const ISAM2& getISAM2() const {
+    return isam_;
+  }
+
   /** return the current set of iSAM2 parameters */
   const ISAM2Params& params() const {
     return isam_.params();
@@ -148,6 +153,15 @@ private:
   static void PrintSymbolicTreeHelper(
       const gtsam::ISAM2Clique::shared_ptr& clique, const std::string indent =
           "");
+
+private:
+  /** Serialization function */
+  friend class boost::serialization::access;
+  template<class ARCHIVE>
+  void serialize(ARCHIVE & ar, const unsigned int /*version*/) {
+      ar & boost::serialization::base_object<FixedLagSmoother>(*this);
+      ar & BOOST_SERIALIZATION_NVP(isam_);
+  }
 
 };
 // IncrementalFixedLagSmoother
